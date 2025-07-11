@@ -19,3 +19,4 @@ samples, guidance on mobile development, and a full API reference.
 # auto-shop
 # auto-shop
 # auto-shop1
+# auto_shop2
