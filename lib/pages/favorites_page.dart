@@ -22,7 +22,7 @@ class FavoritesPage extends StatelessWidget {
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            child: LanguageSelector(),
+            child: LanguageSelector(key: UniqueKey()),
           ),
         ],
       ),
@@ -86,8 +86,7 @@ class FavoritesPage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              ProductDetailsPage(partId: product['id']),
+                          builder: (_) => ProductDetailsPage(product: product),
                         ),
                       );
                     },
@@ -101,6 +100,7 @@ class FavoritesPage extends StatelessWidget {
 
 // ويدجت اختيار اللغة
 class LanguageSelector extends StatelessWidget {
+  const LanguageSelector({super.key});
   @override
   Widget build(BuildContext context) {
     final locales = [

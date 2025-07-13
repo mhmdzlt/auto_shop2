@@ -1,133 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:easy_localization/easy_localization.dart';
 
-class ProductDetailsPage extends StatefulWidget {
-  final int partId;
-  const ProductDetailsPage({super.key, required this.partId});
-
-  @override
-  State<ProductDetailsPage> createState() => _ProductDetailsPageState();
-}
-
-class _ProductDetailsPageState extends State<ProductDetailsPage> {
-  final supabase = Supabase.instance.client;
-  Map<String, dynamic>? part;
-  bool loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    fetchPart();
-  }
-
-  Future<void> fetchPart() async {
-    setState(() => loading = true);
-    final response = await supabase
-        .from('parts')
-        .select()
-        .eq('id', widget.partId)
-        .maybeSingle();
-
-    setState(() {
-      part = response;
-      loading = false;
-    });
-  }
-
-  void addToCart() {
-    // منطق إضافة للسلة هنا
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('added_to_cart'.tr())));
-  }
+class ProductDetailsPage extends StatelessWidget {
+  final Map<String, dynamic> product;
+  const ProductDetailsPage({super.key, required this.product});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(part?['name'] ?? ''),
+        title: Text(product['name'] ?? ''),
         backgroundColor: Colors.white,
-        centerTitle: true,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF181111)),
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : part == null
-          ? Center(child: Text('not_found'.tr()))
-          : ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                if (part!['image_url'] != null)
-                  Container(
-                    height: 180,
-                    margin: const EdgeInsets.only(bottom: 25),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      color: const Color(0xFFF5F0F0),
-                      image: DecorationImage(
-                        image: NetworkImage(part!['image_url']),
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-                Text(
-                  part!['name'] ?? '',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 24,
-                    color: Color(0xFF181111),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  part!['description'] ?? '',
-                  style: const TextStyle(fontSize: 16, color: Colors.black87),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'price'.tr(),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF181111),
-                      ),
-                    ),
-                    Text(
-                      '${part!['price']} \$',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        color: Color(0xFFF93838),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 22),
-                ElevatedButton(
-                  onPressed: addToCart,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF93838),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    minimumSize: const Size.fromHeight(48),
-                  ),
-                  child: Text(
-                    'add_to_cart'.tr(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ],
+      body: ListView(
+        padding: const EdgeInsets.all(18),
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Image.network(
+              product['image_url'] ?? '',
+              height: 210,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 100),
             ),
+          ),
+          const SizedBox(height: 22),
+          Text(
+            product['name'] ?? '',
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            product['description'] ?? '',
+            style: const TextStyle(fontSize: 16, color: Colors.black54),
+          ),
+          const SizedBox(height: 22),
+          Text(
+            "${product['price'] ?? '--'} د.ع",
+            style: const TextStyle(fontSize: 21, color: Color(0xFF1978E5), fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 26),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 50),
+              backgroundColor: const Color(0xFF1978E5),
+            ),
+            onPressed: () async {
+              // أضف المنتج للسلة
+              // يمكنك إنشاء كلاس سلة متكامل لاحقاً (الآن اختصاراً فقط Alert)
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تمت الإضافة للسلة')));
+            },
+            icon: const Icon(Icons.add_shopping_cart_outlined),
+            label: const Text('إضافة إلى السلة'),
+          ),
+        ],
+      ),
     );
   }
 }

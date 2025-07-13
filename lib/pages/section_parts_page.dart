@@ -79,7 +79,7 @@ class _SectionPartsPageState extends State<SectionPartsPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ProductDetailsPage(partId: part['id']),
+                        builder: (_) => ProductDetailsPage(product: part),
                       ),
                     );
                   },

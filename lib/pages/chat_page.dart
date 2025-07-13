@@ -1,58 +1,104 @@
 import 'package:flutter/material.dart';
-import 'package:easy_localization/easy_localization.dart';
-// إذا أردت ربط الدردشة مع Supabase أو أي نظام رسائل لاحقًا
-// import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class ChatPage extends StatelessWidget {
-  final String userId;
+class ChatPage extends StatefulWidget {
+  const ChatPage({super.key});
 
-  const ChatPage({Key? key, required this.userId}) : super(key: key);
+  @override
+  State<ChatPage> createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<ChatPage> {
+  final supabase = Supabase.instance.client;
+  final controller = TextEditingController();
+  List<Map<String, dynamic>> messages = [];
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchMessages();
+  }
+
+  Future<void> fetchMessages() async {
+    setState(() => loading = true);
+    final response = await supabase
+        .from('messages')
+        .select()
+        .order('created_at', ascending: true);
+    setState(() {
+      messages = List<Map<String, dynamic>>.from(response);
+      loading = false;
+    });
+  }
+
+  Future<void> sendMessage(String text) async {
+    await supabase.from('messages').insert({'message': text});
+    controller.clear();
+    fetchMessages();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('chat_with_support'.tr()),
+        title: const Text('الدعم الفني'),
         backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Color(0xFF181111)),
-        actions: [
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: messages.length,
+                    itemBuilder: (ctx, i) {
+                      final msg = messages[i];
+                      return Container(
+                        alignment: Alignment.centerLeft,
+                        margin: const EdgeInsets.only(bottom: 10),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(msg['message'] ?? ''),
+                        ),
+                      );
+                    },
+                  ),
+          ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            child: LanguageSelector(),
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    decoration: const InputDecoration(
+                      hintText: 'اكتب رسالتك...',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1978E5)),
+                  onPressed: () {
+                    if (controller.text.trim().isNotEmpty) {
+                      sendMessage(controller.text.trim());
+                    }
+                  },
+                  child: const Icon(Icons.send, color: Colors.white),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      body: Center(
-        child: Text('User ID: $userId', style: const TextStyle(fontSize: 22)),
-      ),
-    );
-  }
-}
-
-// ويدجت اختيار اللغة
-class LanguageSelector extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final locales = [
-      {'locale': const Locale('ar'), 'name': 'العربية'},
-      {'locale': const Locale('en'), 'name': 'English'},
-      {'locale': const Locale('ku'), 'name': 'کوردی'},
-    ];
-    return DropdownButton<Locale>(
-      value: context.locale,
-      underline: const SizedBox(),
-      icon: const Icon(Icons.language, color: Color(0xFF8c5f5f)),
-      onChanged: (locale) {
-        context.setLocale(locale!);
-      },
-      items: locales
-          .map(
-            (e) => DropdownMenuItem(
-              value: e['locale'] as Locale,
-              child: Text(e['name'] as String),
-            ),
-          )
-          .toList(),
     );
   }
 }
