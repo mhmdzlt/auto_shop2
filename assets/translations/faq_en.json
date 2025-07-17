@@ -1,0 +1,13 @@
+{
+  "faq": {
+    "title": "FAQ",
+    "track_order_q": "How can I track my order status?",
+    "track_order_a": "Go to the Orders page and tap any order to see its current status and delivery details.",
+    "edit_address_q": "Can I edit my delivery address?",
+    "edit_address_a": "Yes, you can change your address from the 'My Addresses' page before placing the order.",
+    "payment_methods_q": "Are there multiple payment methods?",
+    "payment_methods_a": "We currently support cash on delivery. Online payment will be added soon.",
+    "return_product_q": "Can I return a product?",
+    "return_product_a": "Yes, within 3 days of receipt, provided it is in its original condition."
+  }
+}

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'products_page.dart';
-import 'cart_page.dart';
-import 'profile_page.dart';
+import '../pages/products_page.dart';
+import '../pages/cart_page.dart';
+import '../pages/profile_page.dart';
 
 class BottomNav extends StatefulWidget {
   final int index;
@@ -25,13 +25,13 @@ class _BottomNavState extends State<BottomNav> {
     Widget page;
     switch (i) {
       case 0:
-        page = const ProductsPage();
+        page = ProductsPage();
         break;
       case 1:
-        page = const CartPage();
+        page = CartPage();
         break;
       default:
-        page = const ProfilePage();
+        page = ProfilePage();
     }
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => page));
   }

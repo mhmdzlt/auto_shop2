@@ -10,21 +10,41 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_localizations:  # ✅ دعم لغات النظام
+  flutter_localizations:
     sdk: flutter
   supabase_flutter: ^2.5.0
   cupertino_icons: ^1.0.8
   image_picker: ^1.0.7
-  google_fonts: ^6.2.1    # ✅ الخط تلقائي
+  google_fonts: ^6.2.1
   flutter_svg: ^2.0.10+1
   easy_localization: ^3.0.5
+  hive: ^2.2.3                         # 🐝 تخزين محلي
+  hive_flutter: ^1.1.0                 # 🐝 دعم الواجهة لـ Hive
+  path_provider: ^2.0.15               # 🗂️ تحديد المسار المحلي للملفات
+  flutter_riverpod: ^2.4.9             # 📦 إدارة الحالة
+  connectivity_plus: ^6.1.4            # 📶 متابعة حالة الاتصال
+  flutter_local_notifications: ^16.1.0 # 🔔 إشعارات محلية
+  url_launcher: ^6.1.14                # 🔗 فتح الروابط والتطبيقات
+  http: ^1.1.0                         # 🌐 طلبات HTTP
+  carousel_slider: ^4.1.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   flutter_lints: ^5.0.0
+  hive_generator: ^2.0.1               # ⚙️ توليد Adapter عبر build_runner
+  build_runner: ^2.4.6                 # ⚙️ تشغيل مولّدات الكود
 
 flutter:
   uses-material-design: true
   assets:
     - assets/translations/
+    - assets/icons/
+    - assets/lang/
+  
+  # App icon configuration for different platforms
+  # android: "assets/icons/icon.png"
+  # ios: true
+  # image_path: "assets/icons/icon.png"

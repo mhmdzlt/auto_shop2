@@ -1,20 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'product_details_page.dart';
+import '../providers/favorites_provider.dart';
 
 // القائمة تأتي من قاعدة بيانات أو local storage حسب التطبيق
-class FavoritesPage extends StatelessWidget {
-  final List<Map<String, dynamic>> favorites; // قائمة المنتجات المفضلة
-
-  const FavoritesPage({super.key, required this.favorites});
+class FavoritesPage extends ConsumerWidget {
+  const FavoritesPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = Supabase.instance.client.auth.currentSession;
+    final isOnline = session != null;
+    final favorites = ref.watch(favoritesProvider);
+
+    if (!isOnline) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'يتم عرض المفضلات من التخزين المحلي بسبب ضعف الاتصال',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'favorites'.tr(),
-          style: const TextStyle(color: Color(0xFF181111)),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('المفضلة'),
+            if (!isOnline)
+              const Text(
+                'وضع بدون اتصال',
+                style: TextStyle(fontSize: 12, color: Colors.red),
+              ),
+          ],
         ),
         backgroundColor: Colors.white,
         centerTitle: true,
@@ -38,7 +63,11 @@ class FavoritesPage extends StatelessWidget {
               itemCount: favorites.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, i) {
-                final product = favorites[i];
+                final part = favorites[i];
+                final isFavorite = ref
+                    .read(favoritesProvider.notifier)
+                    .contains(part.id);
+
                 return Card(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
@@ -47,9 +76,9 @@ class FavoritesPage extends StatelessWidget {
                   child: ListTile(
                     leading: ClipRRect(
                       borderRadius: BorderRadius.circular(9),
-                      child: product['image_url'] != null
+                      child: part.imageUrl != null
                           ? Image.network(
-                              product['image_url'],
+                              part.imageUrl!,
                               width: 56,
                               height: 56,
                               fit: BoxFit.cover,
@@ -61,7 +90,7 @@ class FavoritesPage extends StatelessWidget {
                             ),
                     ),
                     title: Text(
-                      product['name'] ?? '',
+                      part.name,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF181111),
@@ -70,23 +99,37 @@ class FavoritesPage extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: Text(
-                      product['description'] ?? '',
+                      part.description,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 13),
                     ),
-                    trailing: Text(
-                      '${product['price']} ${'currency'.tr()}',
-                      style: const TextStyle(
-                        color: Color(0xFF8c5f5f),
-                        fontWeight: FontWeight.bold,
+                    trailing: IconButton(
+                      icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: isFavorite ? Colors.red : Colors.grey,
                       ),
+                      onPressed: () {
+                        if (isFavorite) {
+                          ref.read(favoritesProvider.notifier).remove(part.id);
+                        } else {
+                          ref.read(favoritesProvider.notifier).add(part);
+                        }
+                      },
                     ),
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => ProductDetailsPage(product: product),
+                          builder: (_) => ProductDetailsPage(
+                            product: {
+                              'id': part.id,
+                              'name': part.name,
+                              'description': part.description,
+                              'price': part.price,
+                              'image_url': part.imageUrl,
+                            },
+                          ),
                         ),
                       );
                     },
