@@ -2,16 +2,16 @@ name: 🔧 Flutter Code Cleanup & Analysis
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   clean_analyze_test:
-    name: 🧹 Format, Analyze, and Test Flutter Project
     runs-on: ubuntu-latest
-
     steps:
       - name: 🔄 Checkout Repository
         uses: actions/checkout@v3
