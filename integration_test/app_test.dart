@@ -30,7 +30,6 @@ void main() {
       await _testAddressManagement(tester);
     });
   });
-}
 
 Future<void> _testProductBrowsing(WidgetTester tester) async {
   print('Testing product browsing...');
