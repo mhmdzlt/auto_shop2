@@ -7,6 +7,8 @@ class PrivacyPolicyPage extends StatelessWidget {
   );
   final TextStyle body = const TextStyle(fontSize: 14);
 
+  const PrivacyPolicyPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

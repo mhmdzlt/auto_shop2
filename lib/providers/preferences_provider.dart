@@ -18,7 +18,7 @@ final preferencesProvider =
 class PreferencesNotifier extends StateNotifier<AppPreferences> {
   final Box<AppPreferences> _box = Hive.box<AppPreferences>('preferences');
 
-  PreferencesNotifier(AppPreferences prefs) : super(prefs) {
+  PreferencesNotifier(super.prefs) {
     // حفظ التفضيلات الأولية إذا لم تكن محفوظة
     if (_box.get('prefs') == null) {
       _savePreferences();

@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AdminDashboardPage extends StatelessWidget {
   final bool isAdmin;
-  const AdminDashboardPage({Key? key, required this.isAdmin}) : super(key: key);
+  const AdminDashboardPage({super.key, required this.isAdmin});
 
   @override
   Widget build(BuildContext context) {

@@ -95,7 +95,7 @@ class CartPage extends ConsumerWidget {
                                   width: 60,
                                   height: 60,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
+                                  errorBuilder: (context, error, stackTrace) =>
                                       const Icon(Icons.broken_image, size: 60),
                                 )
                               : const Icon(Icons.image_not_supported, size: 60),

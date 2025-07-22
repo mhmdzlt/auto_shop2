@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:easy_localization/easy_localization.dart';
 
 class FlashDealsSection extends StatefulWidget {
-  const FlashDealsSection({Key? key}) : super(key: key);
+  const FlashDealsSection({super.key});
 
   @override
   State<FlashDealsSection> createState() => _FlashDealsSectionState();

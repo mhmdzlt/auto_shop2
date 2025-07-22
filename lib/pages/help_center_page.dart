@@ -90,6 +90,8 @@ class HelpCenterPage extends StatelessWidget {
 }
 
 class PolicyDialog extends StatelessWidget {
+  const PolicyDialog({super.key});
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -107,6 +109,8 @@ class PolicyDialog extends StatelessWidget {
 
 // ويدجت اختيار اللغة
 class LanguageSelector extends StatelessWidget {
+  const LanguageSelector({super.key});
+
   @override
   Widget build(BuildContext context) {
     final locales = [

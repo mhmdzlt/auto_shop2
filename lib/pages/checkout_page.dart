@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/addresses_provider.dart';
 import '../models/address.dart';
 import '../providers/orders_provider.dart';
 import '../models/order.dart';
 import '../services/notification_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/payment_service.dart';
+import 'package:auto_shop/services/invoice_service.dart';
+import 'package:auto_shop/services/email_service.dart';
+import '../widgets/payment_widgets.dart';
+import '../services/promo_service.dart'; // إضافة خدمة الكوبونات
 
 class CheckoutPage extends ConsumerStatefulWidget {
   final List<OrderItem> cartItems;
@@ -24,17 +29,278 @@ class CheckoutPage extends ConsumerStatefulWidget {
 
 class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   String selectedPayment = 'cod';
-  final _cardController = TextEditingController();
   final _gatewayController = TextEditingController();
   Address? selectedAddress;
   bool isLoading = false;
+  String promoInput = '';
+  double discountPercentage = 0.0;
+  double discountAmount = 0.0;
+  bool freeShipping = false;
+
+  /// تطبيق كود الخصم
+  void _applyPromoCode() {
+    final promo = PromoService.validateCode(promoInput.trim());
+    if (promo != null) {
+      setState(() {
+        discountPercentage = promo['discount'] ?? 0.0;
+        freeShipping = promo['freeShipping'] ?? false;
+        discountAmount = discountPercentage * widget.totalPrice;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('✅ تم تطبيق الكود بنجاح')));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ كود الخصم غير صالح أو منتهي')),
+      );
+    }
+  }
+
+  Future<void> _processOrder() async {
+    final double finalAmount = (widget.totalPrice - discountAmount).clamp(
+      0.0,
+      double.infinity,
+    );
+    if (selectedAddress == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('please_select_address'.tr())));
+      }
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final userId = Supabase.instance.client.auth.currentUser!.id;
+      final user = Supabase.instance.client.auth.currentUser;
+      final orderId = DateTime.now().millisecondsSinceEpoch.toString();
+      final amountToPay = finalAmount;
+
+      String paymentStatus = 'pending';
+      String? transactionId;
+
+      // معالجة الدفع حسب النوع المختار
+      if (selectedPayment == 'stripe') {
+        // عرض معاينة الدفع قبل التأكيد
+        final shouldProceed = await PaymentService.showPaymentPreview(
+          context: context,
+          amount: amountToPay,
+          currency: 'USD',
+          items: widget.cartItems
+              .map((item) => {'name': item.partId, 'quantity': item.quantity})
+              .toList(),
+        );
+
+        if (!shouldProceed) {
+          setState(() => isLoading = false);
+          return;
+        }
+
+        // الدفع عبر Stripe
+        final paymentResult = await PaymentService.processPaymentWithLoading(
+          amount: amountToPay,
+          currency: 'USD',
+          orderId: orderId,
+          customerEmail: user?.email ?? 'guest@autoshop.com',
+          context: context,
+        );
+
+        if (!paymentResult.success) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(paymentResult.error ?? 'payment_failed'.tr()),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
+        paymentStatus = 'succeeded';
+        transactionId = paymentResult.transactionId;
+      } else if (selectedPayment == 'bank') {
+        if (_gatewayController.text.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('يرجى إدخال حساب الدفع')));
+          }
+          return;
+        }
+        paymentStatus = 'paid';
+        transactionId = 'bank_${DateTime.now().millisecondsSinceEpoch}';
+      } else {
+        // الدفع عند الاستلام
+        paymentStatus = 'pending';
+        transactionId = null;
+      }
+
+      // حفظ الطلب في قاعدة البيانات
+      final orderData = {
+        'id': orderId,
+        'user_id': userId,
+        'total_price': finalAmount,
+        'status': 'pending',
+        'address_id': selectedAddress!.id,
+        'payment_status': paymentStatus,
+        'payment_type': selectedPayment,
+        'transaction_id': transactionId,
+        'order_items': widget.cartItems.map((item) => item.toJson()).toList(),
+        'created_at': DateTime.now().toIso8601String(),
+        'discount_percentage': discountPercentage,
+        'discount_amount': discountAmount,
+        'free_shipping': freeShipping,
+      };
+
+      await Supabase.instance.client.from('orders').insert(orderData);
+
+      // إنشاء نموذج الطلب للتطبيق
+      final order = Order(
+        id: orderId,
+        userId: userId,
+        totalPrice: widget.totalPrice,
+        createdAt: DateTime.now(),
+        items: widget.cartItems,
+        status: OrderStatus.pending,
+        addressId: selectedAddress!.id,
+      );
+
+      await ref.read(ordersProvider.notifier).addOrder(order);
+
+      // إرسال إشعار
+      await NotificationService.showOrderNotification(
+        title: 'order_confirmed'.tr(),
+        body: paymentStatus == 'succeeded'
+            ? 'order_paid_successfully'.tr()
+            : 'order_processing'.tr(),
+      );
+
+      // توليد الفاتورة إذا تم الدفع بنجاح
+      if (paymentStatus == 'succeeded') {
+        await _generateInvoice(orderData);
+      }
+
+      if (mounted) {
+        // عرض حالة الدفع إذا تم بنجاح
+        if (paymentStatus == 'succeeded') {
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => PaymentStatusWidget(
+              orderId: orderId,
+              onPaymentSuccess: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          );
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('order_confirmed'.tr()),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).popUntil(ModalRoute.withName('/home'));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('order_failed'.tr()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  /// توليد الفاتورة للطلب
+  Future<void> _generateInvoice(Map<String, dynamic> orderData) async {
+    try {
+      final orderDetails = {
+        'user_name':
+            Supabase
+                .instance
+                .client
+                .auth
+                .currentUser
+                ?.userMetadata?['full_name'] ??
+            'Customer',
+        'date': orderData['created_at'],
+        'items': widget.cartItems
+            .map(
+              (item) => {
+                'name': item.partId,
+                'quantity': item.quantity,
+                'price': item.unitPrice.toStringAsFixed(2),
+              },
+            )
+            .toList(),
+        'total': orderData['total_price'].toStringAsFixed(2),
+      };
+
+      final pdfBytes = await InvoiceService.generateInvoicePdf(
+        orderId: orderData['id'],
+        orderDetails: orderDetails,
+      );
+
+      // حفظ الفاتورة محلياً
+      final savedPath = await InvoiceService.saveInvoiceLocally(
+        pdfBytes,
+        orderData['id'],
+      );
+
+      if (savedPath != null) {
+        debugPrint('Invoice saved at: $savedPath');
+      }
+
+      // إرسال الفاتورة عبر البريد الإلكتروني (اختياري)
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user?.email != null) {
+        final emailSent = await EmailService.sendInvoiceViaSupabase(
+          toEmail: user!.email!,
+          orderId: orderData['id'],
+          pdfBytes: pdfBytes,
+          customerName: orderDetails['user_name'] as String?,
+        );
+
+        if (emailSent) {
+          debugPrint('Invoice email sent successfully');
+        }
+      }
+
+      // حفظ مسار الفاتورة في قاعدة البيانات (اختياري)
+      await Supabase.instance.client
+          .from('orders')
+          .update({
+            'invoice_generated': true,
+            'invoice_generated_at': DateTime.now().toIso8601String(),
+            'invoice_path': savedPath,
+          })
+          .eq('id', orderData['id']);
+    } catch (e) {
+      debugPrint('Error generating invoice: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final addressesAsync = ref.watch(addressesProvider);
 
     final paymentMethods = [
-      {'id': 'card', 'label': 'pay_by_card'.tr(), 'icon': Icons.credit_card},
+      {
+        'id': 'stripe',
+        'label': 'stripe_payment'.tr(),
+        'icon': Icons.credit_card,
+      },
       {
         'id': 'bank',
         'label': 'pay_by_bank'.tr(),
@@ -84,12 +350,47 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                   Text('${widget.cartItems.length} ${'items'.tr()}'),
                   const SizedBox(height: 4),
                   Text(
-                    '${'total'.tr()}: ${widget.totalPrice} ${'currency'.tr()}',
+                    '${'total'.tr()}: ${widget.totalPrice.toStringAsFixed(2)} ${'currency'.tr()}',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  // إدخال كود الخصم
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            labelText: 'Promo Code',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (val) => promoInput = val,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: _applyPromoCode,
+                        child: const Text('Apply'),
+                      ),
+                    ],
+                  ),
+                  if (discountPercentage > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Discount: -${(discountPercentage * 100).toStringAsFixed(0)}%',
+                          ),
+                          Text(
+                            'Discount Amount: -${discountAmount.toStringAsFixed(2)} ${'currency'.tr()}',
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -142,18 +443,16 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               }
 
               // البحث عن العنوان الافتراضي
-              if (selectedAddress == null) {
-                selectedAddress = addresses.firstWhere(
-                  (addr) => addr.isDefault,
-                  orElse: () => addresses.first,
-                );
-              }
+              selectedAddress ??= addresses.firstWhere(
+                (addr) => addr.isDefault,
+                orElse: () => addresses.first,
+              );
 
               return Column(
                 children: addresses.map((address) {
                   return Card(
                     color: selectedAddress?.id == address.id
-                        ? const Color(0xFFF93838).withOpacity(0.1)
+                        ? const Color(0xFFF93838).withValues(alpha: 0.1)
                         : null,
                     child: ListTile(
                       title: Text(address.title),
@@ -207,7 +506,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               ),
             ),
           ),
-          if (selectedPayment == 'card') ...[
+          if (selectedPayment == 'stripe') ...[
             const SizedBox(height: 12),
             Card(
               child: Padding(
@@ -215,18 +514,32 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'بيانات البطاقة البنكية',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    Row(
+                      children: [
+                        Icon(Icons.security, color: Colors.green, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'stripe_secure_payment'.tr(),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
-                    TextField(
-                      controller: _cardController,
-                      decoration: const InputDecoration(
-                        labelText: 'رقم البطاقة',
-                        prefixIcon: Icon(Icons.credit_card),
+                    Text(
+                      'stripe_payment_info'.tr(),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                      keyboardType: TextInputType.number,
+                      child: Text(
+                        'stripe_test_card'.tr(),
+                        style: TextStyle(fontSize: 12, color: Colors.blue[700]),
+                      ),
                     ),
                   ],
                 ),
@@ -274,97 +587,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               onPressed: selectedAddress == null || isLoading
                   ? null
                   : () async {
-                      if (selectedAddress == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('please_select_address'.tr())),
-                        );
-                        return;
-                      }
-
-                      setState(() => isLoading = true);
-
-                      String paymentStatus = 'pending';
-                      String paymentType = selectedPayment;
-                      String? paymentDetails;
-
-                      // محاكاة الدفع الإلكتروني
-                      if (selectedPayment == 'card') {
-                        // هنا يتم ربط Stripe أو FastPay/ZainCash
-                        if (_cardController.text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('يرجى إدخال رقم البطاقة')),
-                          );
-                          setState(() => isLoading = false);
-                          return;
-                        }
-                        paymentStatus = 'paid';
-                        paymentDetails = _cardController.text;
-                      } else if (selectedPayment == 'bank') {
-                        if (_gatewayController.text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('يرجى إدخال حساب الدفع')),
-                          );
-                          setState(() => isLoading = false);
-                          return;
-                        }
-                        paymentStatus = 'paid';
-                        paymentDetails = _gatewayController.text;
-                      } else {
-                        paymentStatus = 'pending';
-                        paymentDetails = null;
-                      }
-
-                      try {
-                        final userId =
-                            Supabase.instance.client.auth.currentUser!.id;
-                        final order = Order(
-                          id: '',
-                          userId: userId,
-                          totalPrice: widget.totalPrice,
-                          createdAt: DateTime.now(),
-                          items: widget.cartItems,
-                          status: OrderStatus.pending,
-                          addressId: selectedAddress!.id,
-                        );
-
-                        await Supabase.instance.client.from('orders').insert({
-                          'user_id': userId,
-                          'total_price': widget.totalPrice,
-                          'status': 'pending',
-                          'address_id': selectedAddress!.id,
-                          'payment_status': paymentStatus,
-                          'payment_type': paymentType,
-                          'payment_details': paymentDetails,
-                          'order_items': widget.cartItems
-                              .map((item) => item.toJson())
-                              .toList(),
-                        });
-
-                        await ref.read(ordersProvider.notifier).addOrder(order);
-
-                        await NotificationService.showOrderNotification(
-                          title: 'تم إرسال طلبك بنجاح',
-                          body: 'سيتم مراجعة الطلب قريباً',
-                        );
-
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('order_confirmed'.tr())),
-                          );
-                          Navigator.popUntil(
-                            context,
-                            ModalRoute.withName('/home'),
-                          );
-                        }
-                      } catch (error) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('order_failed'.tr())),
-                          );
-                        }
-                      } finally {
-                        setState(() => isLoading = false);
-                      }
+                      await _processOrder();
                     },
               child: isLoading
                   ? const SizedBox(
@@ -391,6 +614,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 }
 
 class LanguageSelector extends StatelessWidget {
+  const LanguageSelector({super.key});
+
   @override
   Widget build(BuildContext context) {
     final locales = [

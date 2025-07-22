@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:easy_localization/easy_localization.dart';
 
 class PaymentHistoryPage extends StatefulWidget {
-  const PaymentHistoryPage({Key? key}) : super(key: key);
+  const PaymentHistoryPage({super.key});
 
   @override
   State<PaymentHistoryPage> createState() => _PaymentHistoryPageState();
@@ -22,6 +22,13 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
   Future<void> _fetchOrders() async {
     setState(() => loading = true);
     final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) {
+      setState(() {
+        orders = [];
+        loading = false;
+      });
+      return;
+    }
     final response = await Supabase.instance.client
         .from('orders')
         .select()

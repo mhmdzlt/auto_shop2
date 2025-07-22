@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ManageProductsPage extends StatefulWidget {
-  const ManageProductsPage({Key? key}) : super(key: key);
+  const ManageProductsPage({super.key});
   @override
   State<ManageProductsPage> createState() => _ManageProductsPageState();
 }
@@ -87,8 +87,7 @@ class _ManageProductsPageState extends State<ManageProductsPage> {
 class ProductFormDialog extends StatefulWidget {
   final dynamic product;
   final VoidCallback onSaved;
-  const ProductFormDialog({Key? key, this.product, required this.onSaved})
-    : super(key: key);
+  const ProductFormDialog({super.key, this.product, required this.onSaved});
   @override
   State<ProductFormDialog> createState() => _ProductFormDialogState();
 }
@@ -136,7 +135,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
       'price': double.tryParse(priceController.text) ?? 0,
       'description': descController.text,
       'image': imageController.text,
-      'category_id': int.tryParse(categoryController.text) ?? null,
+      'category_id': int.tryParse(categoryController.text),
     };
     if (widget.product == null) {
       await Supabase.instance.client.from('products').insert(data);
@@ -147,7 +146,9 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
           .eq('id', widget.product['id']);
     }
     widget.onSaved();
-    Navigator.pop(context);
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 
   @override

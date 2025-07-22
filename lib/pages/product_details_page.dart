@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 // import 'package:carousel_slider/carousel_slider.dart'; // Removed to avoid import conflict
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../providers/cart_provider.dart';
+import '../widgets/reviews_section.dart';
 
-class ProductDetailsPage extends StatelessWidget {
+class ProductDetailsPage extends ConsumerWidget {
   final dynamic product;
-  const ProductDetailsPage({required this.product, Key? key}) : super(key: key);
+  const ProductDetailsPage({required this.product, super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final List<String> images = product['images'] ?? [product['image']];
     final specs = product['specs'] ?? {};
     // سيتم تحميل المراجعات من Supabase
@@ -63,27 +66,66 @@ class ProductDetailsPage extends StatelessWidget {
               subtitle: Text(e.value.toString(), style: GoogleFonts.cairo()),
             ),
           ),
-          SizedBox(height: 16),
-          ReviewsSection(productId: product['id']),
+          const SizedBox(height: 16),
+          ReviewForm(productId: product['id']?.toString() ?? ''),
+          const SizedBox(height: 16),
+          ReviewsSection(productId: product['id']?.toString() ?? ''),
           SizedBox(height: 24),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: EdgeInsets.symmetric(vertical: 14),
-            ),
-            icon: Icon(Icons.add_shopping_cart),
-            label: Text(
-              'إضافة إلى السلة',
-              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-            ),
-            onPressed: () {
-              // TODO: إضافة المنتج للسلة
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('تمت إضافة المنتج للسلة!')),
+          Consumer(
+            builder: (context, ref, child) {
+              final cartItems = ref.watch(cartProvider);
+              final isInCart = cartItems.any(
+                (item) => item.productId == product['id']?.toString(),
+              );
+
+              return ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isInCart ? Colors.green : Colors.orange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                ),
+                icon: Icon(
+                  isInCart ? Icons.shopping_cart : Icons.add_shopping_cart,
+                ),
+                label: Text(
+                  isInCart ? 'موجود في السلة' : 'إضافة إلى السلة',
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                ),
+                onPressed: () {
+                  if (isInCart) {
+                    // الانتقال إلى صفحة السلة
+                    Navigator.pushNamed(context, '/cart');
+                  } else {
+                    // إضافة المنتج للسلة
+                    final cartNotifier = ref.read(cartProvider.notifier);
+                    final productData = {
+                      'id': product['id']?.toString() ?? '',
+                      'name': product['name'] ?? '',
+                      'price': product['price']?.toString() ?? '0',
+                      'image_url':
+                          (product['images'] != null &&
+                              product['images'].isNotEmpty)
+                          ? product['images'][0]
+                          : product['image'] ?? '',
+                    };
+
+                    cartNotifier.addProduct(productData);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'تمت إضافة ${product['name']} إلى السلة!',
+                          style: GoogleFonts.cairo(),
+                        ),
+                        backgroundColor: Colors.green,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
               );
             },
           ),
@@ -104,11 +146,11 @@ class SimilarProductsSection extends StatefulWidget {
   final double? price;
   final Object? excludeId;
   const SimilarProductsSection({
-    Key? key,
+    super.key,
     this.categoryId,
     this.price,
     this.excludeId,
-  }) : super(key: key);
+  });
   @override
   State<SimilarProductsSection> createState() => _SimilarProductsSectionState();
 }
@@ -124,17 +166,32 @@ class _SimilarProductsSectionState extends State<SimilarProductsSection> {
   }
 
   Future<void> _fetchSimilar() async {
-    setState(() => loading = true);
-    final response = await Supabase.instance.client
-        .from('products')
-        .select()
-        .eq('category_id', widget.categoryId.toString())
-        .neq('id', widget.excludeId.toString())
-        .limit(6);
-    setState(() {
-      products = response;
-      loading = false;
-    });
+    if (mounted) {
+      setState(() => loading = true);
+    }
+
+    try {
+      final response = await Supabase.instance.client
+          .from('products')
+          .select()
+          .eq('category_id', widget.categoryId.toString())
+          .neq('id', widget.excludeId.toString())
+          .limit(6);
+
+      if (mounted) {
+        setState(() {
+          products = response;
+          loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          products = [];
+          loading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -216,48 +273,48 @@ class _SimilarProductsSectionState extends State<SimilarProductsSection> {
   }
 }
 
-class ReviewsSection extends StatefulWidget {
-  final int productId;
-  const ReviewsSection({Key? key, required this.productId}) : super(key: key);
+class ReviewForm extends StatefulWidget {
+  final String productId;
+  const ReviewForm({super.key, required this.productId});
+
   @override
-  State<ReviewsSection> createState() => _ReviewsSectionState();
+  State<ReviewForm> createState() => _ReviewFormState();
 }
 
-class _ReviewsSectionState extends State<ReviewsSection> {
-  List<dynamic> reviews = [];
-  bool loading = true;
-  int rating = 5;
-  final TextEditingController reviewController = TextEditingController();
+class _ReviewFormState extends State<ReviewForm> {
+  final TextEditingController _controller = TextEditingController();
+  double _rating = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchReviews();
-  }
+  void _submitReview() async {
+    if (_controller.text.isEmpty || _rating == 0) return;
 
-  Future<void> _fetchReviews() async {
-    setState(() => loading = true);
-    final response = await Supabase.instance.client
-        .from('reviews')
-        .select()
-        .eq('product_id', widget.productId);
-    setState(() {
-      reviews = response;
-      loading = false;
-    });
-  }
+    try {
+      await Supabase.instance.client.from('reviews').insert({
+        'product_id': widget.productId,
+        'user': 'مستخدم', // يمكن ربطه بالمستخدم الحالي
+        'comment': _controller.text,
+        'rating': _rating,
+      });
 
-  Future<void> _addReview() async {
-    if (reviewController.text.isEmpty) return;
-    await Supabase.instance.client.from('reviews').insert({
-      'product_id': widget.productId,
-      'user': 'مستخدم', // يمكن ربطه بالمستخدم الحالي
-      'comment': reviewController.text,
-      'rating': rating,
-    });
-    reviewController.clear();
-    rating = 5;
-    _fetchReviews();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('تمت إضافة مراجعتك!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      _controller.clear();
+      setState(() {
+        _rating = 0;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('حدث خطأ أثناء إضافة المراجعة'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -266,73 +323,62 @@ class _ReviewsSectionState extends State<ReviewsSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'المراجعات',
+          'أضف مراجعتك',
           style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        loading
-            ? Center(child: CircularProgressIndicator())
-            : Column(
-                children: reviews
-                    .map(
-                      (r) => Card(
-                        margin: const EdgeInsets.symmetric(vertical: 6),
-                        child: ListTile(
-                          leading: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: List.generate(
-                              5,
-                              (i) => Icon(
-                                i < (r['rating'] ?? 0)
-                                    ? Icons.star
-                                    : Icons.star_border,
-                                color: Colors.amber,
-                                size: 18,
-                              ),
-                            ),
-                          ),
-                          title: Text(
-                            r['user'] ?? 'مستخدم',
-                            style: GoogleFonts.cairo(),
-                          ),
-                          subtitle: Text(
-                            r['comment'] ?? '',
-                            style: GoogleFonts.cairo(),
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-        const SizedBox(height: 12),
-        Text(
-          'أضف مراجعتك:',
-          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-        ),
-        Row(
-          children: List.generate(
-            5,
-            (i) => IconButton(
-              icon: Icon(
-                i < rating ? Icons.star : Icons.star_border,
-                color: Colors.amber,
-              ),
-              onPressed: () => setState(() => rating = i + 1),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _controller,
+          decoration: InputDecoration(
+            hintText: 'اكتب مراجعتك هنا...',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.orange),
             ),
           ),
+          maxLines: 3,
         ),
-        TextField(
-          controller: reviewController,
-          decoration: InputDecoration(hintText: 'اكتب مراجعتك هنا...'),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Text('تقييمك:', style: GoogleFonts.cairo()),
+            const SizedBox(width: 8),
+            ...List.generate(
+              5,
+              (index) => IconButton(
+                icon: Icon(
+                  index < _rating ? Icons.star : Icons.star_border_outlined,
+                  color: Colors.amber,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _rating = index + 1.toDouble();
+                  });
+                },
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-          onPressed: _addReview,
-          child: Text('إرسال', style: GoogleFonts.cairo()),
+          onPressed: _submitReview,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orange,
+            padding: EdgeInsets.symmetric(vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: Text(
+            'إرسال المراجعة',
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
         ),
       ],
     );
   }
 }
-
-// ...existing code...

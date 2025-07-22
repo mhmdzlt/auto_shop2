@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SupportPage extends StatelessWidget {
-  const SupportPage({Key? key}) : super(key: key);
+  const SupportPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -36,9 +36,11 @@ class SupportPage extends StatelessWidget {
                         mode: LaunchMode.externalApplication,
                       );
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('تعذر فتح واتساب')),
-                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('تعذر فتح واتساب')),
+                        );
+                      }
                     }
                   },
                 ),
@@ -55,11 +57,13 @@ class SupportPage extends StatelessWidget {
                     if (await canLaunchUrl(uri)) {
                       await launchUrl(uri);
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('تعذر فتح تطبيق البريد الإلكتروني'),
-                        ),
-                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('تعذر فتح تطبيق البريد الإلكتروني'),
+                          ),
+                        );
+                      }
                     }
                   },
                 ),
@@ -74,9 +78,11 @@ class SupportPage extends StatelessWidget {
                     if (await canLaunchUrl(uri)) {
                       await launchUrl(uri);
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('تعذر إجراء المكالمة')),
-                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('تعذر إجراء المكالمة')),
+                        );
+                      }
                     }
                   },
                 ),
@@ -174,7 +180,7 @@ class SupportPage extends StatelessWidget {
 }
 
 class FAQPage extends StatelessWidget {
-  const FAQPage({Key? key}) : super(key: key);
+  const FAQPage({super.key});
 
   @override
   Widget build(BuildContext context) {

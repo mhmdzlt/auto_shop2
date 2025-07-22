@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:easy_localization/easy_localization.dart';
 
 class RecommendedSection extends StatefulWidget {
   final String? userId;
-  const RecommendedSection({Key? key, this.userId}) : super(key: key);
+  const RecommendedSection({super.key, this.userId});
 
   @override
   State<RecommendedSection> createState() => _RecommendedSectionState();

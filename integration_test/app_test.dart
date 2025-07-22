@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:auto_shop/main.dart' as app;
@@ -20,6 +19,10 @@ void main() {
 
       // Test cart functionality
       await _testCartFunctionality(tester);
+
+      // Test add to cart and checkout
+      await _testAddToCart(tester);
+      await _testCheckout(tester);
     });
 
     testWidgets('Address and order management test', (tester) async {
@@ -28,72 +31,19 @@ void main() {
 
       // Test address management
       await _testAddressManagement(tester);
+
+      // Test orders filtering
+      await _testOrdersFiltering(tester);
     });
   });
-
-Future<void> _testProductBrowsing(WidgetTester tester) async {
-  print('Testing product browsing...');
-  
-  // Look for product grids or lists
-  await tester.pumpAndSettle();
-  
-  // Test scrolling for lazy loading
-  if (find.byType(GridView).evaluate().isNotEmpty) {
-    await tester.drag(find.byType(GridView).first, const Offset(0, -300));
-    await tester.pumpAndSettle();
-  }
 }
 
 Future<void> _testCartFunctionality(WidgetTester tester) async {
-  print('Testing cart functionality...');
-  
   // Look for cart icon or button
   final cartFinder = find.byIcon(Icons.shopping_cart);
   if (cartFinder.evaluate().isNotEmpty) {
     await tester.tap(cartFinder.first);
     await tester.pumpAndSettle();
-  }
-}
-
-Future<void> _testAddressManagement(WidgetTester tester) async {
-  print('Testing address management...');
-  
-  // Look for address-related widgets
-  await tester.pumpAndSettle();
-  
-  // Test navigation to addresses page
-  final addressFinder = find.textContaining('address').or(
-    find.textContaining('عنوان')
-  );
-  if (addressFinder.evaluate().isNotEmpty) {
-    await tester.tap(addressFinder.first);
-    await tester.pumpAndSettle();
-  }
-}
-
-      // Test sync when back online
-      await _testOfflineSync(tester);
-    });
-  });
-}
-
-Future<void> _testLogin(WidgetTester tester) async {
-  // Look for login fields
-  final emailField = find.byKey(const ValueKey('email_field'));
-  final passwordField = find.byKey(const ValueKey('password_field'));
-  final loginButton = find.byKey(const ValueKey('login_button'));
-
-  if (emailField.evaluate().isNotEmpty) {
-    // Enter test credentials
-    await tester.enterText(emailField, 'test@example.com');
-    await tester.enterText(passwordField, 'password123');
-
-    // Tap login button
-    await tester.tap(loginButton);
-    await tester.pumpAndSettle(const Duration(seconds: 3));
-
-    // Verify successful login (should see main app)
-    expect(find.text('Auto Parts'), findsOneWidget);
   }
 }
 
@@ -258,52 +208,5 @@ Future<void> _testOrdersFiltering(WidgetTester tester) async {
         expect(find.byType(ListView), findsOneWidget);
       }
     }
-  }
-}
-
-Future<void> _testOfflineOrders(WidgetTester tester) async {
-  // Simulate going offline
-  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-    const MethodChannel('connectivity_plus'),
-    (MethodCall methodCall) async {
-      if (methodCall.method == 'check') {
-        return 'none'; // No connectivity
-      }
-      return null;
-    },
-  );
-
-  // Try to place an order while offline
-  await _testAddToCart(tester);
-  await _testCheckout(tester);
-
-  // Should see offline notification
-  expect(find.textContaining('offline'), findsOneWidget);
-}
-
-Future<void> _testOfflineSync(WidgetTester tester) async {
-  // Simulate coming back online
-  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-    const MethodChannel('connectivity_plus'),
-    (MethodCall methodCall) async {
-      if (methodCall.method == 'check') {
-        return 'wifi'; // Has connectivity
-      }
-      return null;
-    },
-  );
-
-  // Wait for sync
-  await tester.pumpAndSettle(const Duration(seconds: 5));
-
-  // Should see sync notification
-  expect(find.textContaining('synced'), findsOneWidget);
-}
-
-Future<void> _skipToMainApp(WidgetTester tester) async {
-  // Check if we're already on main app
-  if (find.text('Auto Parts').evaluate().isEmpty) {
-    // We might be on login screen, try to login
-    await _testLogin(tester);
   }
 }

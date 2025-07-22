@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ManageOrdersPage extends StatefulWidget {
-  const ManageOrdersPage({Key? key}) : super(key: key);
+  const ManageOrdersPage({super.key});
   @override
   State<ManageOrdersPage> createState() => _ManageOrdersPageState();
 }

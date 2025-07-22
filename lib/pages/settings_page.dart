@@ -5,12 +5,10 @@ import '../providers/preferences_provider.dart';
 import 'faq_page.dart';
 
 class SettingsPage extends ConsumerWidget {
-  const SettingsPage({Key? key}) : super(key: key);
+  const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final preferences = ref.watch(preferencesProvider);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('الإعدادات'),

@@ -5,7 +5,7 @@ import 'package:hive/hive.dart';
 import '../providers/search_provider.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
-  const SearchPage({Key? key}) : super(key: key);
+  const SearchPage({super.key});
   @override
   ConsumerState<SearchPage> createState() => _SearchPageState();
 }
@@ -13,7 +13,6 @@ class SearchPage extends ConsumerStatefulWidget {
 class _SearchPageState extends ConsumerState<SearchPage> {
   final TextEditingController _controller = TextEditingController();
   List<String> _searchHistory = [];
-  bool _showFilter = false;
   String? _selectedCategory;
   double _minPrice = 0;
   double _maxPrice = 10000;

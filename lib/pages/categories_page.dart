@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CategoriesPage extends StatefulWidget {
-  const CategoriesPage({Key? key}) : super(key: key);
+  const CategoriesPage({super.key});
 
   @override
   State<CategoriesPage> createState() => _CategoriesPageState();
@@ -29,13 +29,11 @@ class _CategoriesPageState extends State<CategoriesPage> {
       final response = await Supabase.instance.client
           .from('categories')
           .select();
-      if (response != null && response is List) {
-        setState(() {
-          _categories = response;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
+      setState(() {
+        _categories = response;
+        _isLoading = false;
+      });
+        } catch (e) {
       setState(() {
         _hasError = true;
         _isLoading = false;
@@ -106,8 +104,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
 // صفحة المنتجات حسب التصنيف
 class CategoryProductsPage extends StatelessWidget {
   final dynamic category;
-  const CategoryProductsPage({required this.category, Key? key})
-    : super(key: key);
+  const CategoryProductsPage({required this.category, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -123,8 +120,7 @@ class CategoryProductsPage extends StatelessWidget {
 
 class CategoryProductsGrid extends StatefulWidget {
   final int categoryId;
-  const CategoryProductsGrid({required this.categoryId, Key? key})
-    : super(key: key);
+  const CategoryProductsGrid({required this.categoryId, super.key});
 
   @override
   State<CategoryProductsGrid> createState() => _CategoryProductsGridState();
@@ -151,13 +147,11 @@ class _CategoryProductsGridState extends State<CategoryProductsGrid> {
           .from('products')
           .select()
           .eq('category_id', widget.categoryId);
-      if (response != null && response is List) {
-        setState(() {
-          _products = response;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
+      setState(() {
+        _products = response;
+        _isLoading = false;
+      });
+        } catch (e) {
       setState(() {
         _hasError = true;
         _isLoading = false;

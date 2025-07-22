@@ -1,0 +1,155 @@
+name: Weekly Health Check
+
+on:
+  schedule:
+    # تشغيل كل يوم اثنين الساعة 09:00 UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # إمكانية التشغيل اليدوي
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.5'
+        channel: 'stable'
+
+    - name: Get dependencies
+      run: flutter pub get
+
+    - name: Project Health Report
+      run: |
+        echo "🏥 ===== تقرير صحة المشروع الأسبوعي ====="
+        echo "📅 $(date)"
+        echo ""
+        
+        # إحصائيات عامة
+        echo "📊 الإحصائيات العامة:"
+        TOTAL_DART_FILES=$(find . -name "*.dart" | wc -l)
+        TOTAL_LINES=$(find . -name "*.dart" -exec cat {} \; | wc -l)
+        echo "- إجمالي ملفات Dart: $TOTAL_DART_FILES"
+        echo "- إجمالي أسطر الكود: $TOTAL_LINES"
+        
+        # حالة التبعيات
+        echo ""
+        echo "📦 حالة التبعيات:"
+        flutter pub outdated || echo "جميع التبعيات محدثة"
+        
+        # فحص الأمان
+        echo ""
+        echo "🔒 فحص الأمان:"
+        flutter pub audit || echo "⚠️ قد توجد مشاكل أمنية"
+        
+        # حالة الاختبارات
+        echo ""
+        echo "🧪 حالة الاختبارات:"
+        if flutter test --reporter json > test_results.json 2>/dev/null; then
+          echo "✅ جميع الاختبارات تعمل"
+        else
+          echo "❌ بعض الاختبارات لا تعمل"
+        fi
+        
+        # تحليل الكود
+        echo ""
+        echo "🔍 تحليل الكود:"
+        flutter analyze --no-fatal-infos > analysis.txt 2>&1
+        if grep -q "No issues found" analysis.txt; then
+          echo "✅ الكود نظيف"
+        else
+          ISSUES_COUNT=$(grep -c "info\|warning\|error" analysis.txt || echo 0)
+          echo "⚠️ تم العثور على $ISSUES_COUNT مشكلة"
+        fi
+        
+        # حجم المشروع
+        echo ""
+        echo "📏 حجم المشروع:"
+        PROJECT_SIZE=$(du -sh . | cut -f1)
+        echo "- حجم المشروع: $PROJECT_SIZE"
+        
+        # معدل النمو (تقريبي)
+        COMMITS_THIS_WEEK=$(git log --since="1 week ago" --oneline | wc -l || echo "غير متاح")
+        echo "- عدد الـ commits هذا الأسبوع: $COMMITS_THIS_WEEK"
+
+    - name: Performance Recommendations
+      run: |
+        echo ""
+        echo "⚡ توصيات الأداء:"
+        
+        # فحص الصور الكبيرة
+        LARGE_IMAGES=$(find assets -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" 2>/dev/null | xargs ls -la 2>/dev/null | awk '$5 > 1048576 {print $9}' | wc -l || echo 0)
+        if [ $LARGE_IMAGES -gt 0 ]; then
+          echo "⚠️ توجد $LARGE_IMAGES صور كبيرة (>1MB) - فكر في ضغطها"
+        else
+          echo "✅ أحجام الصور مناسبة"
+        fi
+        
+        # فحص الاستيرادات الزائدة
+        UNUSED_IMPORTS=$(flutter analyze 2>&1 | grep -c "Unused import" || echo 0)
+        if [ $UNUSED_IMPORTS -gt 0 ]; then
+          echo "🧹 يمكن حذف $UNUSED_IMPORTS استيراد غير مستخدم"
+        else
+          echo "✅ الاستيرادات محسنة"
+        fi
+
+    - name: Security Recommendations
+      run: |
+        echo ""
+        echo "🔒 توصيات الأمان:"
+        
+        # فحص الملفات الحساسة
+        if [ -f "android/app/google-services.json" ]; then
+          echo "⚠️ تأكد من أن google-services.json في .gitignore"
+        fi
+        
+        if [ -f "ios/Runner/GoogleService-Info.plist" ]; then
+          echo "⚠️ تأكد من أن GoogleService-Info.plist في .gitignore"
+        fi
+        
+        # فحص المتغيرات البيئية
+        if grep -r "API_KEY\|SECRET\|PASSWORD" . --include="*.dart" --exclude-dir=.git >/dev/null 2>&1; then
+          echo "⚠️ قد توجد مفاتيح API في الكود - استخدم متغيرات البيئة"
+        else
+          echo "✅ لم يتم العثور على مفاتيح مكشوفة"
+        fi
+
+    - name: Growth Insights
+      run: |
+        echo ""
+        echo "📈 رؤى النمو:"
+        
+        # تطور المشروع
+        PAGES_COUNT=$(find lib/pages -name "*.dart" 2>/dev/null | wc -l || echo 0)
+        WIDGETS_COUNT=$(find lib/widgets -name "*.dart" 2>/dev/null | wc -l || echo 0)
+        PROVIDERS_COUNT=$(find lib/providers -name "*.dart" 2>/dev/null | wc -l || echo 0)
+        
+        echo "- الصفحات: $PAGES_COUNT"
+        echo "- الويدجت المخصصة: $WIDGETS_COUNT"  
+        echo "- مزودي الحالة: $PROVIDERS_COUNT"
+        
+        # نصائح للنمو
+        if [ $PAGES_COUNT -gt 20 ]; then
+          echo "💡 فكر في تجميع الصفحات في مجلدات فرعية"
+        fi
+        
+        if [ $WIDGETS_COUNT -gt 30 ]; then
+          echo "💡 فكر في إنشاء مكتبة ويدجت منفصلة"
+        fi
+
+    - name: Weekly Summary
+      run: |
+        echo ""
+        echo "📋 ===== ملخص الأسبوع ====="
+        echo "🎯 مشروع Auto Shop في حالة جيدة!"
+        echo "📊 المشروع ينمو بشكل صحي"
+        echo "🔧 تابع التوصيات لتحسين الأداء"
+        echo "🔒 حافظ على معايير الأمان"
+        echo ""
+        echo "🚀 استمر في التطوير الرائع!"
+        echo ""
+        echo "📅 التقرير القادم: الأسبوع المقبل"

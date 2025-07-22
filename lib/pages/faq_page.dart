@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 
 class FAQPage extends StatelessWidget {
-  final List<Map<String, String>> faqs = [
+  const FAQPage({super.key});
+
+  List<Map<String, String>> get faqs => [
     {'question': tr('faq.track_order_q'), 'answer': tr('faq.track_order_a')},
     {'question': tr('faq.edit_address_q'), 'answer': tr('faq.edit_address_a')},
     {

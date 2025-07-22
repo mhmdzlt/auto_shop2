@@ -16,19 +16,32 @@ class _AddProductPageState extends State<AddProductPage> {
   final imageController = TextEditingController();
 
   Future<void> addProduct() async {
-    await supabase.from('products').insert({
-      'name': nameController.text,
-      'description': descController.text,
-      'price': double.tryParse(priceController.text) ?? 0,
-      'image': imageController.text,
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تمت إضافة المنتج!')),
-    );
-    nameController.clear();
-    descController.clear();
-    priceController.clear();
-    imageController.clear();
+    try {
+      await supabase.from('products').insert({
+        'name': nameController.text,
+        'description': descController.text,
+        'price': double.tryParse(priceController.text) ?? 0,
+        'image': imageController.text,
+      });
+
+      // Check if widget is still mounted before using context
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تمت إضافة المنتج!')));
+      }
+
+      nameController.clear();
+      descController.clear();
+      priceController.clear();
+      imageController.clear();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ في إضافة المنتج: $e')));
+      }
+    }
   }
 
   @override
@@ -39,15 +52,25 @@ class _AddProductPageState extends State<AddProductPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: 'اسم المنتج')),
-            TextField(controller: descController, decoration: const InputDecoration(labelText: 'الوصف')),
-            TextField(controller: priceController, decoration: const InputDecoration(labelText: 'السعر'), keyboardType: TextInputType.number),
-            TextField(controller: imageController, decoration: const InputDecoration(labelText: 'رابط الصورة')),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: addProduct,
-              child: const Text('إضافة'),
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'اسم المنتج'),
             ),
+            TextField(
+              controller: descController,
+              decoration: const InputDecoration(labelText: 'الوصف'),
+            ),
+            TextField(
+              controller: priceController,
+              decoration: const InputDecoration(labelText: 'السعر'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: imageController,
+              decoration: const InputDecoration(labelText: 'رابط الصورة'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(onPressed: addProduct, child: const Text('إضافة')),
           ],
         ),
       ),

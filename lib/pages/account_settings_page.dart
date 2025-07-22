@@ -206,6 +206,8 @@ class DeleteAccountDialog extends StatelessWidget {
 
 // ويدجت اختيار اللغة
 class LanguageSelector extends StatelessWidget {
+  const LanguageSelector({super.key});
+
   @override
   Widget build(BuildContext context) {
     final locales = [

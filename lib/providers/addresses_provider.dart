@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -48,7 +49,8 @@ class AddressesNotifier extends StateNotifier<AsyncValue<List<Address>>> {
 
       state = AsyncValue.data(remoteAddresses);
     } catch (e) {
-      print('خطأ في مزامنة العناوين: $e');
+      // Log error for debugging (use proper logging in production)
+      debugPrint('خطأ في مزامنة العناوين: $e');
       // Keep local data on sync error
       final localAddresses = _box.values.toList();
       state = AsyncValue.data(localAddresses);
@@ -68,7 +70,7 @@ class AddressesNotifier extends StateNotifier<AsyncValue<List<Address>>> {
         await _supabase.from('addresses').insert(address.toJson());
       }
     } catch (e) {
-      print('خطأ في إضافة العنوان: $e');
+      debugPrint('خطأ في إضافة العنوان: $e');
     }
   }
 
@@ -91,7 +93,7 @@ class AddressesNotifier extends StateNotifier<AsyncValue<List<Address>>> {
             .eq('id', address.id);
       }
     } catch (e) {
-      print('خطأ في تحديث العنوان: $e');
+      debugPrint('خطأ في تحديث العنوان: $e');
     }
   }
 
@@ -111,7 +113,7 @@ class AddressesNotifier extends StateNotifier<AsyncValue<List<Address>>> {
         await _supabase.from('addresses').delete().eq('id', addressId);
       }
     } catch (e) {
-      print('خطأ في حذف العنوان: $e');
+      debugPrint('خطأ في حذف العنوان: $e');
     }
   }
 
@@ -157,7 +159,7 @@ class AddressesNotifier extends StateNotifier<AsyncValue<List<Address>>> {
             .eq('id', addressId);
       }
     } catch (e) {
-      print('خطأ في تعيين العنوان الافتراضي: $e');
+      debugPrint('خطأ في تعيين العنوان الافتراضي: $e');
     }
   }
 

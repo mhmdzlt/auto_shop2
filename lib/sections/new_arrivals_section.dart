@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:easy_localization/easy_localization.dart';
 
 class NewArrivalsSection extends StatefulWidget {
-  const NewArrivalsSection({Key? key}) : super(key: key);
+  const NewArrivalsSection({super.key});
 
   @override
   State<NewArrivalsSection> createState() => _NewArrivalsSectionState();

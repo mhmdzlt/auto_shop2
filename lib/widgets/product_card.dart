@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import '../services/rating_service.dart';
 
 class ProductCard extends StatelessWidget {
+  final String productId;
   final String name;
   final String price;
   final String image;
 
   const ProductCard({
     super.key,
+    required this.productId,
     required this.name,
     required this.price,
     required this.image,
@@ -47,6 +50,36 @@ class ProductCard extends StatelessWidget {
                 fontSize: 15,
               ),
               textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            // متوسط التقييم
+            FutureBuilder<double>(
+              future: RatingService.getAverageRating(productId),
+              builder: (context, snapshot) {
+                final avg = snapshot.data ?? 0.0;
+                if (avg == 0) return const SizedBox.shrink();
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ...List.generate(
+                      5,
+                      (index) => Icon(
+                        index < avg.round() ? Icons.star : Icons.star_border,
+                        color: Colors.amber,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      avg.toString(),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 4),
             Text(

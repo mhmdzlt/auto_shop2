@@ -19,8 +19,5 @@ final searchResultsProvider = FutureProvider.autoDispose<List<dynamic>>((
       .from('products')
       .select()
       .ilike('name', '%$query%');
-  if (response != null && response is List) {
-    return response;
-  }
-  return [];
+  return response;
 });

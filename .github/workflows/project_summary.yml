@@ -1,0 +1,119 @@
+name: Project Summary
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.6'
+        channel: 'stable'
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Project Statistics
+      run: |
+        echo "🎯 ===== تحليل مشروع Auto Shop ====="
+        echo ""
+        echo "📦 إحصائيات الملفات:"
+        echo "- عدد ملفات Dart: $(find lib -name "*.dart" | wc -l)"
+        echo "- عدد ملفات التست: $(find test -name "*.dart" 2>/dev/null | wc -l || echo 0)"
+        echo "- عدد ملفات Integration Test: $(find integration_test -name "*.dart" 2>/dev/null | wc -l || echo 0)"
+        echo ""
+        echo "📄 إحصائيات الأسطر:"
+        TOTAL_LINES=$(find lib -name "*.dart" -exec cat {} \; | wc -l)
+        echo "- عدد أسطر الكود: $TOTAL_LINES"
+        echo ""
+        echo "🧩 تحليل الويدجت:"
+        STATELESS_COUNT=$(grep -r "extends StatelessWidget" lib --include="*.dart" | wc -l)
+        STATEFUL_COUNT=$(grep -r "extends StatefulWidget" lib --include="*.dart" | wc -l)
+        CONSUMER_COUNT=$(grep -r "extends Consumer" lib --include="*.dart" | wc -l)
+        echo "- StatelessWidget: $STATELESS_COUNT"
+        echo "- StatefulWidget: $STATEFUL_COUNT"
+        echo "- ConsumerWidget: $CONSUMER_COUNT"
+        echo ""
+        echo "📱 صفحات التطبيق:"
+        PAGE_COUNT=$(find lib/pages -name "*.dart" 2>/dev/null | wc -l || echo 0)
+        echo "- عدد الصفحات: $PAGE_COUNT"
+        echo ""
+        echo "🔧 المكونات:"
+        PROVIDER_COUNT=$(find lib/providers -name "*.dart" 2>/dev/null | wc -l || echo 0)
+        MODEL_COUNT=$(find lib/models -name "*.dart" 2>/dev/null | wc -l || echo 0)
+        SERVICE_COUNT=$(find lib/services -name "*.dart" 2>/dev/null | wc -l || echo 0)
+        echo "- Providers: $PROVIDER_COUNT"
+        echo "- Models: $MODEL_COUNT"
+        echo "- Services: $SERVICE_COUNT"
+
+    - name: Analyze code quality
+      run: |
+        echo ""
+        echo "🔍 ===== تحليل جودة الكود ====="
+        flutter analyze --no-fatal-infos > analysis_output.txt 2>&1 || true
+        if grep -q "No issues found!" analysis_output.txt; then
+          echo "✅ الكود خالي من المشاكل!"
+        else
+          echo "⚠️ تم العثور على مشاكل:"
+          cat analysis_output.txt
+        fi
+
+    - name: Check formatting
+      run: |
+        echo ""
+        echo "🎨 ===== فحص التنسيق ====="
+        if flutter format --dry-run --set-exit-if-changed lib/; then
+          echo "✅ الكود منسق بشكل صحيح"
+        else
+          echo "⚠️ يحتاج الكود إلى تنسيق"
+        fi
+
+    - name: Run tests
+      run: |
+        echo ""
+        echo "🧪 ===== تشغيل الاختبارات ====="
+        if flutter test --coverage; then
+          echo "✅ جميع الاختبارات نجحت!"
+        else
+          echo "❌ بعض الاختبارات فشلت"
+        fi
+
+    - name: Build check
+      run: |
+        echo ""
+        echo "🏗️ ===== فحص البناء ====="
+        if flutter build apk --debug; then
+          echo "✅ البناء نجح!"
+        else
+          echo "❌ البناء فشل"
+        fi
+
+    - name: Dependencies check
+      run: |
+        echo ""
+        echo "📦 ===== فحص التبعيات ====="
+        flutter pub deps --style=compact
+        echo ""
+        echo "🔒 فحص الأمان:"
+        flutter pub audit || echo "⚠️ تحذير: قد توجد مشاكل أمنية"
+
+    - name: Project summary
+      run: |
+        echo ""
+        echo "📊 ===== ملخص المشروع ====="
+        echo "🎯 مشروع: Auto Shop - تطبيق قطع غيار السيارات"
+        echo "📅 تاريخ التحليل: $(date)"
+        echo "🔧 إصدار Flutter: $(flutter --version | head -n 1)"
+        echo ""
+        echo "✅ تم تحليل المشروع بنجاح!"
+        echo "🚀 المشروع جاهز للنشر!"

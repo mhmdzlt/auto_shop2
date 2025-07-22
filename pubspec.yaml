@@ -12,30 +12,46 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  supabase_flutter: ^2.5.0
+  supabase_flutter: ^2.8.3
   cupertino_icons: ^1.0.8
-  image_picker: ^1.0.7
+  image_picker: ^1.1.2
   google_fonts: ^6.2.1
-  flutter_svg: ^2.0.10+1
-  easy_localization: ^3.0.5
+  flutter_svg: ^2.0.15
+  easy_localization: ^3.0.7
+  share_plus: ^7.2.2                   # 🔗 مشاركة الملفات والروابط
   hive: ^2.2.3                         # 🐝 تخزين محلي
   hive_flutter: ^1.1.0                 # 🐝 دعم الواجهة لـ Hive
-  path_provider: ^2.0.15               # 🗂️ تحديد المسار المحلي للملفات
-  flutter_riverpod: ^2.4.9             # 📦 إدارة الحالة
-  connectivity_plus: ^6.1.4            # 📶 متابعة حالة الاتصال
-  flutter_local_notifications: ^16.1.0 # 🔔 إشعارات محلية
-  url_launcher: ^6.1.14                # 🔗 فتح الروابط والتطبيقات
-  http: ^1.1.0                         # 🌐 طلبات HTTP
-  carousel_slider: ^4.1.1
+  path_provider: ^2.1.4               # 🗂️ تحديد المسار المحلي للملفات
+  flutter_riverpod: ^2.6.1             # 📦 إدارة الحالة
+  connectivity_plus: ^6.1.4            # 📶 متابعة حالة الاتصال (Matching lockfile version)
+  flutter_local_notifications: ^19.3.1 # 🔔 إشعارات محلية
+  url_launcher: ^6.3.2                # 🔗 فتح الروابط والتطبيقات (Matching lockfile version)
+  http: ^1.2.2                         # 🌐 طلبات HTTP
+  carousel_slider: ^5.1.1
+  flutter_stripe: ^11.5.0             # 💳 الدفع الإلكتروني Stripe
+  pdf: ^3.11.1                        # 📄 توليد ملفات PDF
+  printing: ^5.13.4                   # 🖨️ طباعة وحفظ PDF
+  cached_network_image: ^3.4.1        # 🖼️ تحسين تحميل الصور
+  flutter_cache_manager: ^3.4.1       # 📁 إدارة ذاكرة التخزين المؤقت
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   integration_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
   hive_generator: ^2.0.1               # ⚙️ توليد Adapter عبر build_runner
-  build_runner: ^2.4.6                 # ⚙️ تشغيل مولّدات الكود
+  build_runner: ^2.5.4                 # ⚙️ تشغيل مولّدات الكود (downgraded for hive_generator compatibility)
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
+
+# splash screen configuration (root level)
+flutter_native_splash:
+  color: "#ffffff"
+  image: assets/splash/splash_icon.png
+  branding: assets/splash/branding.png
+  android_gravity: center
+  ios_content_mode: center
 
 flutter:
   uses-material-design: true
@@ -43,8 +59,20 @@ flutter:
     - assets/translations/
     - assets/icons/
     - assets/lang/
+    - assets/splash/
+
   
-  # App icon configuration for different platforms
-  # android: "assets/icons/icon.png"
-  # ios: true
-  # image_path: "assets/icons/icon.png"
+  # App icon configuration for flutter_launcher_icons
+  # flutter_launcher_icons
+  # flutter_icons:
+  #   android: true
+  #   ios: true
+  #   image_path: "assets/icon/app_icon.png"
+  
+  # Splash screen configuration for flutter_native_splash
+  # flutter_native_splash:
+  #   color: "#ffffff"
+  #   image: assets/splash/splash_icon.png
+  #   branding: assets/splash/branding.png
+  #   android_gravity: center
+  #   ios_content_mode: center

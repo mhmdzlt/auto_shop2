@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/order.dart';
+import 'notification_service.dart';
 
 class OrdersService {
   final _client = Supabase.instance.client;
@@ -90,5 +91,11 @@ class OrdersService {
         .from('orders')
         .update({'status': status.name})
         .eq('id', orderId);
+    // إرسال إشعارات ذكية عند تغيير حالة الطلب
+    if (status == OrderStatus.shipped) {
+      await NotificationService.notifyOrderInTransit(orderId);
+    } else if (status == OrderStatus.delivered) {
+      await NotificationService.notifyOrderDelivered(orderId);
+    }
   }
 }

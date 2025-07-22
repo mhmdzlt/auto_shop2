@@ -5,7 +5,7 @@ import 'dart:async';
 import 'package:easy_localization/easy_localization.dart';
 
 class FlashDealsPage extends StatefulWidget {
-  const FlashDealsPage({Key? key}) : super(key: key);
+  const FlashDealsPage({super.key});
   @override
   State<FlashDealsPage> createState() => _FlashDealsPageState();
 }
@@ -13,7 +13,7 @@ class FlashDealsPage extends StatefulWidget {
 class _FlashDealsPageState extends State<FlashDealsPage> {
   List<dynamic> _deals = [];
   bool _isLoading = true;
-  Map<int, Duration> _timers = {};
+  final Map<int, Duration> _timers = {};
   Timer? _timer;
 
   @override

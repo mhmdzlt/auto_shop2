@@ -1,0 +1,157 @@
+name: Advanced Code Analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # تشغيل أسبوعي كل يوم أحد الساعة 02:00 UTC
+    - cron: '0 2 * * 0'
+
+jobs:
+  advanced-analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.6'
+        channel: 'stable'
+
+    - name: Get dependencies
+      run: flutter pub get
+
+    - name: Code Metrics Analysis
+      run: |
+        echo "📈 ===== تحليل مقاييس الكود ====="
+        echo ""
+        
+        # تحليل التعقيد
+        echo "🔄 تحليل التعقيد (Cyclomatic Complexity):"
+        for file in $(find lib -name "*.dart"); do
+          complexity=$(grep -o "if\|for\|while\|switch\|catch\|\&\&\|\|\|" "$file" | wc -l)
+          if [ $complexity -gt 10 ]; then
+            echo "⚠️  $file: تعقيد عالي ($complexity)"
+          fi
+        done
+        
+        # تحليل طول الملفات
+        echo ""
+        echo "📏 تحليل طول الملفات:"
+        for file in $(find lib -name "*.dart"); do
+          lines=$(wc -l < "$file")
+          if [ $lines -gt 500 ]; then
+            echo "⚠️  $file: ملف طويل ($lines سطر)"
+          fi
+        done
+        
+        # تحليل الاستيرادات
+        echo ""
+        echo "📦 تحليل الاستيرادات:"
+        UNUSED_IMPORTS=$(flutter analyze 2>&1 | grep -c "Unused import" || echo 0)
+        echo "- الاستيرادات غير المستخدمة: $UNUSED_IMPORTS"
+        
+        # تحليل TODO و FIXME
+        echo ""
+        echo "📝 تحليل المهام المعلقة:"
+        TODO_COUNT=$(grep -r "TODO\|FIXME\|HACK" lib --include="*.dart" | wc -l)
+        echo "- عدد المهام المعلقة: $TODO_COUNT"
+        if [ $TODO_COUNT -gt 0 ]; then
+          echo "📋 المهام المعلقة:"
+          grep -r "TODO\|FIXME\|HACK" lib --include="*.dart" -n | head -10
+        fi
+
+    - name: Performance Analysis
+      run: |
+        echo ""
+        echo "⚡ ===== تحليل الأداء ====="
+        echo ""
+        
+        # تحليل الويدجت الثقيلة
+        echo "🏋️ تحليل الويدجت الثقيلة:"
+        LISTVIEW_COUNT=$(grep -r "ListView\|GridView" lib --include="*.dart" | wc -l)
+        FUTUREBUILDER_COUNT=$(grep -r "FutureBuilder" lib --include="*.dart" | wc -l)
+        STREAMBUILDER_COUNT=$(grep -r "StreamBuilder" lib --include="*.dart" | wc -l)
+        echo "- ListView/GridView: $LISTVIEW_COUNT"
+        echo "- FutureBuilder: $FUTUREBUILDER_COUNT"
+        echo "- StreamBuilder: $STREAMBUILDER_COUNT"
+        
+        # تحليل استخدام الذاكرة
+        echo ""
+        echo "💾 تحليل استخدام الذاكرة:"
+        IMAGE_COUNT=$(grep -r "Image\." lib --include="*.dart" | wc -l)
+        NETWORK_IMAGE_COUNT=$(grep -r "Image.network\|NetworkImage" lib --include="*.dart" | wc -l)
+        echo "- استخدام الصور: $IMAGE_COUNT"
+        echo "- الصور من الشبكة: $NETWORK_IMAGE_COUNT"
+
+    - name: Security Analysis
+      run: |
+        echo ""
+        echo "🔒 ===== تحليل الأمان ====="
+        echo ""
+        
+        # فحص المفاتيح الصلبة
+        echo "🔑 فحص المفاتيح الصلبة:"
+        HARDCODED_SECRETS=$(grep -r "password\|secret\|key\|token" lib --include="*.dart" -i | grep -v "// " | wc -l)
+        if [ $HARDCODED_SECRETS -gt 0 ]; then
+          echo "⚠️  تم العثور على $HARDCODED_SECRETS مفتاح محتمل"
+        else
+          echo "✅ لم يتم العثور على مفاتيح صلبة"
+        fi
+        
+        # فحص HTTP غير الآمن
+        echo ""
+        echo "🌐 فحص الاتصالات غير الآمنة:"
+        HTTP_COUNT=$(grep -r "http://" lib --include="*.dart" | wc -l)
+        if [ $HTTP_COUNT -gt 0 ]; then
+          echo "⚠️  تم العثور على $HTTP_COUNT اتصال HTTP غير آمن"
+        else
+          echo "✅ جميع الاتصالات آمنة (HTTPS)"
+        fi
+
+    - name: Architecture Analysis
+      run: |
+        echo ""
+        echo "🏗️ ===== تحليل البنية ====="
+        echo ""
+        
+        # تحليل الطبقات
+        echo "📂 تحليل الطبقات:"
+        UI_FILES=$(find lib -path "*/pages/*" -o -path "*/widgets/*" -name "*.dart" | wc -l)
+        LOGIC_FILES=$(find lib -path "*/providers/*" -o -path "*/services/*" -name "*.dart" | wc -l)
+        DATA_FILES=$(find lib -path "*/models/*" -o -path "*/storage/*" -name "*.dart" | wc -l)
+        
+        echo "- طبقة واجهة المستخدم: $UI_FILES ملف"
+        echo "- طبقة المنطق: $LOGIC_FILES ملف"
+        echo "- طبقة البيانات: $DATA_FILES ملف"
+        
+        # نسبة التوزيع
+        TOTAL=$((UI_FILES + LOGIC_FILES + DATA_FILES))
+        if [ $TOTAL -gt 0 ]; then
+          UI_PERCENT=$((UI_FILES * 100 / TOTAL))
+          LOGIC_PERCENT=$((LOGIC_FILES * 100 / TOTAL))
+          DATA_PERCENT=$((DATA_FILES * 100 / TOTAL))
+          echo ""
+          echo "📊 نسبة التوزيع:"
+          echo "- واجهة المستخدم: ${UI_PERCENT}%"
+          echo "- المنطق: ${LOGIC_PERCENT}%"
+          echo "- البيانات: ${DATA_PERCENT}%"
+        fi
+
+    - name: Generate Report
+      run: |
+        echo ""
+        echo "📋 ===== تقرير شامل ====="
+        echo ""
+        echo "🎯 مشروع Auto Shop - تقرير التحليل المتقدم"
+        echo "📅 تاريخ: $(date)"
+        echo "🔄 Commit: ${{ github.sha }}"
+        echo ""
+        echo "✅ تم إكمال التحليل المتقدم بنجاح!"
+        echo ""
+        echo "🔍 للمزيد من التفاصيل، راجع سجلات GitHub Actions"

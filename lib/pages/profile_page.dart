@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'settings_page.dart';
 import 'support_page.dart';
 import 'login_page.dart';
+import 'dev_dashboard_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -103,6 +104,32 @@ class ProfilePage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
+          // خيارات التطوير
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(
+                    Icons.developer_board,
+                    color: Color(0xFF1978E5),
+                  ),
+                  title: const Text('لوحة تطوير التطبيق'),
+                  subtitle: const Text('حالة الأوامر والمشروع'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const DevDashboardPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // خيارات إضافية
           Card(
             child: Column(
@@ -153,17 +180,22 @@ class ProfilePage extends StatelessWidget {
                     if (confirmed == true) {
                       try {
                         await Supabase.instance.client.auth.signOut();
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => LoginPage(onSuccess: () {}),
-                          ),
-                          (_) => false,
-                        );
+                        // Use context check before navigation
+                        if (context.mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => LoginPage(onSuccess: () {}),
+                            ),
+                            (_) => false,
+                          );
+                        }
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('خطأ في تسجيل الخروج: $e')),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('خطأ في تسجيل الخروج: $e')),
+                          );
+                        }
                       }
                     }
                   },

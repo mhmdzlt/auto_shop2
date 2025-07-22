@@ -6,7 +6,7 @@ import '../models/order.dart';
 import 'order_details_page.dart';
 
 class OrdersPage extends ConsumerStatefulWidget {
-  const OrdersPage({Key? key}) : super(key: key);
+  const OrdersPage({super.key});
 
   @override
   ConsumerState<OrdersPage> createState() => _OrdersPageState();
@@ -168,7 +168,7 @@ class _OrdersPageState extends ConsumerState<OrdersPage>
                             decoration: BoxDecoration(
                               color: _getStatusColor(
                                 order.status,
-                              ).withOpacity(0.1),
+                              ).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(

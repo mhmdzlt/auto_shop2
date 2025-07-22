@@ -30,9 +30,9 @@ class AddressesPage extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddressDialog(context, ref),
-        child: const Icon(Icons.add, color: Colors.white),
         backgroundColor: const Color(0xFFF93838),
         tooltip: 'add_address'.tr(),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       body: addressesAsync.when(
         data: (addresses) => addresses.isEmpty
@@ -77,7 +77,7 @@ class AddressesPage extends ConsumerWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
+                              color: Colors.green.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -400,6 +400,8 @@ class _AddressDialogState extends State<AddressDialog> {
 
 // ويدجت اختيار اللغة
 class LanguageSelector extends StatelessWidget {
+  const LanguageSelector({super.key});
+
   @override
   Widget build(BuildContext context) {
     final locales = [

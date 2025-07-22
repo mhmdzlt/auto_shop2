@@ -43,7 +43,7 @@ class BrandSectionsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '${brandName} - ${'car_sections'.tr()}',
+          '$brandName - ${'car_sections'.tr()}',
           style: const TextStyle(color: Color(0xFF181111)),
         ),
         backgroundColor: Colors.white,
@@ -131,8 +131,9 @@ class BottomNavBar extends StatelessWidget {
     return BottomNavigationBar(
       currentIndex: current,
       onTap: (index) {
-        if (index == 0)
+        if (index == 0) {
           Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
+        }
         if (index == 1) Navigator.pushNamed(context, '/orders');
         if (index == 2) Navigator.pushNamed(context, '/profile');
       },
@@ -168,6 +169,8 @@ class BottomNavBar extends StatelessWidget {
 
 // ويدجت اختيار اللغة
 class LanguageSelector extends StatelessWidget {
+  const LanguageSelector({super.key});
+
   @override
   Widget build(BuildContext context) {
     final locales = [

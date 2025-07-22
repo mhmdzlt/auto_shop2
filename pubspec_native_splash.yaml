@@ -1,0 +1,9 @@
+dev_dependencies:
+  flutter_native_splash: ^2.4.0
+
+flutter_native_splash:
+  color: "#ffffff"
+  image: assets/splash/splash_icon.png
+  branding: assets/splash/branding.png
+  android_gravity: center
+  ios_content_mode: center

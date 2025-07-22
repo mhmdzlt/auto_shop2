@@ -7,7 +7,7 @@ import '../models/part.dart';
 import 'part_details_page.dart';
 
 class DetectPartPage extends StatefulWidget {
-  const DetectPartPage({Key? key}) : super(key: key);
+  const DetectPartPage({super.key});
 
   @override
   State<DetectPartPage> createState() => _DetectPartPageState();
@@ -60,10 +60,12 @@ class _DetectPartPageState extends State<DetectPartPage> {
       );
 
       setState(() => _loading = false);
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => PartDetailsPage(part: foundPart)),
-      );
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => PartDetailsPage(part: foundPart)),
+        );
+      }
     } else {
       setState(() {
         _result = 'لا توجد نتائج مطابقة لـ "$label"';

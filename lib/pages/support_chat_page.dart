@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupportChatPage extends StatefulWidget {
   const SupportChatPage({super.key});
@@ -9,28 +10,90 @@ class SupportChatPage extends StatefulWidget {
 }
 
 class _SupportChatPageState extends State<SupportChatPage> {
-  final List<Map<String, String>> messages = [
-    {'from': 'support', 'text': 'welcome_support'.tr()},
-  ];
   final TextEditingController _controller = TextEditingController();
+  final supabase = Supabase.instance.client;
+  late final String userId;
   bool sending = false;
+  bool loading = true;
+  List<Map<String, dynamic>> messages = [];
+  late final Stream<List<Map<String, dynamic>>> chatStream;
 
-  void sendMessage() {
+  @override
+  void initState() {
+    super.initState();
+    _initChat();
+  }
+
+  Future<void> _initChat() async {
+    final user = supabase.auth.currentUser;
+    userId = user?.id ?? 'anonymous';
+    await _fetchMessages();
+    _subscribeToMessages();
+  }
+
+  Future<void> _fetchMessages() async {
+    try {
+      final res = await supabase
+          .from('support_chat')
+          .select()
+          .order('created_at', ascending: true);
+      if (mounted) {
+        setState(() {
+          messages = List<Map<String, dynamic>>.from(res);
+          loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          loading = false;
+        });
+      }
+    }
+  }
+
+  void _subscribeToMessages() {
+    supabase
+        .channel('public:support_chat')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'support_chat',
+          callback: (payload) {
+            final newMsg = payload.newRecord;
+            if (newMsg.isNotEmpty && mounted) {
+              setState(() {
+                messages.add(newMsg);
+              });
+            }
+          },
+        )
+        .subscribe();
+  }
+
+  Future<void> sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    setState(() {
-      messages.add({'from': 'user', 'text': text});
-      sending = true;
-    });
+    setState(() => sending = true);
     _controller.clear();
-
-    // هنا يمكن ربط Supabase أو أي خدمة chat فعلية
-    Future.delayed(const Duration(seconds: 1), () {
-      setState(() {
-        messages.add({'from': 'support', 'text': 'reply_soon'.tr()});
-        sending = false;
+    try {
+      await supabase.from('support_chat').insert({
+        'user_id': userId,
+        'from': 'user',
+        'text': text,
+        'created_at': DateTime.now().toIso8601String(),
       });
-    });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('send_failed'.tr())));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => sending = false);
+      }
+    }
   }
 
   @override
@@ -51,39 +114,43 @@ class _SupportChatPageState extends State<SupportChatPage> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(18),
-              itemCount: messages.length,
-              itemBuilder: (context, i) {
-                final msg = messages[i];
-                final isUser = msg['from'] == 'user';
-                return Align(
-                  alignment: isUser
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 5),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isUser
-                          ? const Color(0xFFF93838)
-                          : const Color(0xFFF5F0F0),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Text(
-                      msg['text'] ?? '',
-                      style: TextStyle(
-                        color: isUser ? Colors.white : const Color(0xFF181111),
-                        fontSize: 15,
-                      ),
-                    ),
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    padding: const EdgeInsets.all(18),
+                    itemCount: messages.length,
+                    itemBuilder: (context, i) {
+                      final msg = messages[i];
+                      final isUser = msg['from'] == 'user';
+                      return Align(
+                        alignment: isUser
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 5),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isUser
+                                ? const Color(0xFFF93838)
+                                : const Color(0xFFF5F0F0),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(
+                            msg['text'] ?? '',
+                            style: TextStyle(
+                              color: isUser
+                                  ? Colors.white
+                                  : const Color(0xFF181111),
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
           const Divider(height: 2, thickness: 1),
           Padding(
@@ -126,6 +193,8 @@ class _SupportChatPageState extends State<SupportChatPage> {
 
 // ويدجت اختيار اللغة
 class LanguageSelector extends StatelessWidget {
+  const LanguageSelector({super.key});
+
   @override
   Widget build(BuildContext context) {
     final locales = [

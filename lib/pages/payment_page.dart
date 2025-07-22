@@ -148,6 +148,8 @@ class _PaymentPageState extends State<PaymentPage> {
 
 // ويدجت اختيار اللغة كما في باقي الصفحات
 class LanguageSelector extends StatelessWidget {
+  const LanguageSelector({super.key});
+
   @override
   Widget build(BuildContext context) {
     final locales = [
