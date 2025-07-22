@@ -11,7 +11,9 @@ import '../services/payment_service.dart';
 import 'package:auto_shop/services/invoice_service.dart';
 import 'package:auto_shop/services/email_service.dart';
 import '../widgets/payment_widgets.dart';
+import 'package:auto_shop/widgets/discount_entry_widget.dart';
 import '../services/promo_service.dart'; // إضافة خدمة الكوبونات
+import 'package:auto_shop/models/discount.dart';
 
 class CheckoutPage extends ConsumerStatefulWidget {
   final List<OrderItem> cartItems;
@@ -33,9 +35,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   Address? selectedAddress;
   bool isLoading = false;
   String promoInput = '';
-  double discountPercentage = 0.0;
   double discountAmount = 0.0;
-  bool freeShipping = false;
+  Discount? appliedDiscount;
 
   /// تطبيق كود الخصم
   void _applyPromoCode() {
@@ -358,33 +359,23 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                   ),
                   const SizedBox(height: 12),
                   // إدخال كود الخصم
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          decoration: InputDecoration(
-                            labelText: 'Promo Code',
-                            border: OutlineInputBorder(),
-                          ),
-                          onChanged: (val) => promoInput = val,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: _applyPromoCode,
-                        child: const Text('Apply'),
-                      ),
-                    ],
+                  DiscountEntryWidget(
+                    onDiscountApplied: (discount) {
+                      setState(() {
+                        appliedDiscount = discount;
+                        discountAmount = discount.calculateDiscount(
+                          widget.totalPrice,
+                        );
+                      });
+                    },
                   ),
-                  if (discountPercentage > 0)
+                  if (appliedDiscount != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 8.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Discount: -${(discountPercentage * 100).toStringAsFixed(0)}%',
-                          ),
+                          Text('Discount: "${appliedDiscount!.title}"'),
                           Text(
                             'Discount Amount: -${discountAmount.toStringAsFixed(2)} ${'currency'.tr()}',
                           ),
