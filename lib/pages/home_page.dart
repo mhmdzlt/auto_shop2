@@ -3,15 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../pages/cart_page.dart';
-import '../pages/profile_page.dart';
-import '../pages/about_page.dart';
-import '../pages/orders_page.dart';
-import '../sections/flash_deals_section.dart';
-import '../sections/new_arrivals_section.dart';
-import '../sections/recommended_section.dart';
-import '../sections/categories_section.dart';
-import '../sections/promotional_banner_section.dart';
+import 'package:auto_shop/pages/cart_page.dart';
+import 'package:auto_shop/pages/orders_page.dart';
+import 'package:auto_shop/pages/profile_page.dart';
+import 'package:auto_shop/pages/products_page.dart';
+import 'package:auto_shop/pages/about_page.dart';
+import 'package:auto_shop/sections/flash_deals_section.dart';
+import 'package:auto_shop/sections/new_arrivals_section.dart';
+import 'package:auto_shop/sections/recommended_section.dart';
+import 'package:auto_shop/sections/categories_section.dart';
+import 'package:auto_shop/sections/promotional_banner_section.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -248,23 +249,63 @@ class _HomePageState extends State<HomePage> {
         onTap: (index) {
           setState(() => _selectedIndex = index);
         },
+=======
+  int _selectedIndex = 0;
+
+  final List<Widget> _screens = const [
+    ProductsPage(),
+    CartPage(),
+    OrdersPage(),
+    ProfilePage(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+>>>>>>> e428747767f3d61ad90b05da60d60cb1efd9fb78
         type: BottomNavigationBarType.fixed,
+        currentIndex: _selectedIndex,
         selectedItemColor: Colors.blueAccent,
         unselectedItemColor: Colors.grey,
+<<<<<<< HEAD
         selectedFontSize: 12,
         unselectedFontSize: 12,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
+=======
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+>>>>>>> e428747767f3d61ad90b05da60d60cb1efd9fb78
             label: 'الرئيسية',
           ),
           BottomNavigationBarItem(icon: Icon(Icons.receipt), label: 'الطلبات'),
           BottomNavigationBarItem(
+<<<<<<< HEAD
             icon: Icon(Icons.shopping_cart_outlined),
             label: 'السلة',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
+=======
+            icon: Icon(Icons.shopping_cart),
+            label: 'السلة',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list),
+            label: 'الطلبات',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+>>>>>>> e428747767f3d61ad90b05da60d60cb1efd9fb78
             label: 'الحساب',
           ),
         ],
@@ -272,6 +313,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+<<<<<<< HEAD
 
 class _SearchBar extends StatelessWidget {
   final void Function(String)? onSubmitted;
@@ -398,3 +440,5 @@ class ProductSearchDelegate extends SearchDelegate {
     return Center(child: Text('اقتراحات البحث: "$query"'));
   }
 }
+=======
+>>>>>>> e428747767f3d61ad90b05da60d60cb1efd9fb78
